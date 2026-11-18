@@ -1,0 +1,7 @@
+# dsh-connector bundle patch
+# 只注册一个宿主侧空插件：界面全在 client.js，业务全在 DSH连接器程序（127.0.0.1:14930）
+- insert:
+    - id: dsh-connector
+      name: dsh-connector
+      config:
+        enabled: true

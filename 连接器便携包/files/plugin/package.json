@@ -1,0 +1,22 @@
+{
+  "name": "dsh-connector",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "DSH 连接器面板：在 DSH 里直接开内网/外网通道、出二维码",
+  "main": "lib/index.js",
+  "exports": {
+    ".": { "default": "./lib/index.js" },
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-slots"
+      ]
+    }
+  }
+}

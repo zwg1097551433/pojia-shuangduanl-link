@@ -1,0 +1,40 @@
+# ===== 敏感信息 =====
+# 含 token 的链接文件
+phone-url*.txt
+desktop-web-url.txt
+desktop-public-url.txt
+# 含真实 IP 的配置
+config.json
+gate.json
+settings.json
+# 二维码图片（含 token）
+*.png
+*.jpg
+
+# ===== 运行时产物 =====
+*.log
+*.zst
+*.zstd
+*.bak-*
+server.log
+port-forward.log
+rewrite-proxy.log
+tunnel.log
+env-snapshot.txt
+
+# ===== 大文件 / 二进制 =====
+cloudflared.exe
+bin/*.exe
+*.tgz.bak
+
+# ===== 系统 =====
+Thumbs.db
+desktop.ini
+.DS_Store
+*.swp
+~$*
+
+# ===== 目录 =====
+会话备份/
+node_modules/
+.git/

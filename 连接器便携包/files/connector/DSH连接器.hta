@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>DSH 连接器</title>
+<hta:application
+  id="app"
+  applicationname="DSHConnector"
+  border="thin"
+  caption="yes"
+  maximizebutton="no"
+  minimizebutton="yes"
+  scroll="no"
+  singleinstance="yes"
+  sysmenu="yes"
+  windowstate="normal"
+  contextmenu="no"
+  icon="app.ico"
+/>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 14px 16px;
+    font-family: "Microsoft YaHei UI", "Segoe UI", sans-serif;
+    font-size: 13px; color: #1f2328; background: #f6f8fa;
+    width: 480px; height: 96%; overflow-y: auto; overflow-x: hidden; padding-bottom: 30px;
+  }
+  h1 { font-size: 15px; margin: 0 0 2px; font-weight: 600; }
+  .sub { color: #6b7280; font-size: 11px; margin-bottom: 12px; }
+  .row { display: flex; gap: 10px; }
+  button {
+    font-family: inherit; font-size: 13px; cursor: pointer;
+    border: 1px solid #d0d7de; background: #fff; color: #1f2328;
+    border-radius: 6px; padding: 9px 12px;
+  }
+  button:hover { background: #f3f4f6; }
+  button.primary { background: #1f6feb; border-color: #1f6feb; color: #fff; font-weight: 600; }
+  button.primary:hover { background: #1a5fd0; }
+  button.danger { color: #b42318; border-color: #f0b4ae; }
+  button.danger:hover { background: #fff1f0; }
+  button:disabled { opacity: .55; cursor: default; }
+  .half { flex: 1; }
+  .card { background: #fff; border: 1px solid #d0d7de; border-radius: 8px; padding: 10px 12px; margin-top: 10px; }
+  .label { color: #6b7280; font-size: 11px; margin-bottom: 6px; }
+  #qrWrap { text-align: center; padding: 4px 0; }
+  #qrImg { width: 220px; height: 220px; border: 1px solid #e5e7eb; border-radius: 6px; background:#fff; }
+  #qrPlaceholder { color: #9ca3af; font-size: 12px; padding: 90px 0; }
+  #countdown { font-size: 12px; color: #b45309; margin-top: 6px; }
+  #linkBox {
+    width: 100%; margin-top: 6px; font-family: Consolas, monospace;
+    font-size: 11px; padding: 7px; border: 1px solid #d0d7de; border-radius: 6px;
+    background: #f9fafb; color: #374151; word-break: break-all; height: 48px; resize: none;
+  }
+  .status { font-size: 11px; color: #6b7280; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #d1d5db; margin-right: 5px; }
+  .dot.ok { background: #16a34a; }
+  .dot.bad { background: #dc2626; }
+  .msg { font-size: 12px; margin-top: 6px; min-height: 16px; }
+  .msg.err { color: #b42318; }
+  .msg.ok { color: #15803d; }
+  select, input[type=number] {
+    font-family: inherit; font-size: 12px; padding: 5px 7px;
+    border: 1px solid #d0d7de; border-radius: 6px; background: #fff;
+  }
+  .settingsRow { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
+  .settingsRow span { color: #374151; }
+  .note {
+    font-size: 11px; line-height: 1.5; color: #4b5563; background: #f9fafb;
+    border: 1px dashed #d0d7de; border-radius: 6px; padding: 6px 8px; margin-top: 5px;
+  }
+  hr { border: none; border-top: 1px solid #e5e7eb; margin: 10px 0; }
+  #footer {
+    position: fixed; left: 0; right: 0; bottom: 0; height: 24px; line-height: 24px;
+    text-align: center; font-size: 10.5px; color: #8b949e;
+    background: #eef1f4; border-top: 1px solid #d8dee4;
+    white-space: nowrap; overflow: hidden;
+  }
+  #footer b { color: #57606a; font-weight: 600; }
+</style>
+</head>
+<body>
+  <h1>DSH 连接器</h1>
+  <div class="sub">手机访问桌面 DeepSeek 的通道管理<span id="engineDot" class="dot" style="margin-left:8px"></span><span class="status" id="engineText">检测中…</span><button id="btnLaunch" style="display:none;margin-left:8px;padding:2px 8px;font-size:11px;cursor:pointer;border:1px solid #1f6feb;border-radius:4px;background:#1f6feb;color:#fff" onclick="launchApp()">启动 DeepSeek</button></div>
+
+  <div class="row">
+    <button class="primary half" id="btnLan" onclick="start('lan')">内网（同一 WiFi）</button>
+    <button class="primary half" id="btnWan" onclick="start('wan')">外网（流量/异地）</button>
+  </div>
+
+  <div class="card">
+    <div class="label">扫码入口<span id="modeTag" style="margin-left:6px;color:#1f6feb"></span></div>
+    <div id="qrWrap">
+      <div id="qrPlaceholder">点击上方按钮生成二维码</div>
+      <img id="qrImg" style="display:none" src="" alt="" />
+      <table id="qrDual" style="display:none;width:100%;border-collapse:collapse">
+        <tr>
+          <td style="width:50%;text-align:center;vertical-align:top;padding:0 4px">
+            <div style="font-size:11px;color:#1f6feb;font-weight:bold;margin-bottom:4px">内网</div>
+            <img id="qrLan" style="width:140px;height:140px;border:1px solid #e5e7eb;border-radius:6px;background:#fff" src="" alt="" />
+            <div id="urlLan" style="font-size:9px;color:#9ca3af;margin-top:4px;word-break:break-all;height:24px;overflow:hidden"></div>
+          </td>
+          <td style="width:50%;text-align:center;vertical-align:top;padding:0 4px">
+            <div style="font-size:11px;color:#8250df;font-weight:bold;margin-bottom:4px">外网</div>
+            <img id="qrWan" style="width:140px;height:140px;border:1px solid #e5e7eb;border-radius:6px;background:#fff" src="" alt="" />
+            <div id="urlWan" style="font-size:9px;color:#9ca3af;margin-top:4px;word-break:break-all;height:24px;overflow:hidden"></div>
+          </td>
+        </tr>
+      </table>
+    </div>
+    <div id="countdown" style="display:none"></div>
+    <textarea id="linkBox" readonly style="display:none"></textarea>
+    <div class="msg" id="msg"></div>
+  </div>
+
+  <div class="card">
+    <div class="label">设置</div>
+    <div class="settingsRow">
+      <span>显示方式</span>
+      <select id="selDisplay" onchange="saveSettings()">
+        <option value="both">二维码 + 文本链接</option>
+        <option value="qr">仅二维码</option>
+        <option value="text">仅文本链接</option>
+      </select>
+    </div>
+    <div class="settingsRow">
+      <span>二维码有效期（分钟）</span>
+      <input type="number" id="inpMinutes" min="1" max="60" value="5" style="width:70px" onchange="saveSettings()" />
+    </div>
+    <div class="settingsRow">
+      <span>通道模式</span>
+      <select id="selChannel" onchange="saveSettings()">
+        <option value="exclusive">互斥（只留一条，单个二维码）</option>
+        <option value="dual">双通（内网+外网，两个二维码）</option>
+      </select>
+    </div>
+    <div class="note" id="channelNote"></div>
+    <div class="settingsRow">
+      <span>过期策略</span>
+      <select id="selExpiry" onchange="onExpiryChange()">
+        <option value="A">A · 长期有效（想断就点下方「停用」）</option>
+        <option value="B" selected>B · 拒绝新连接（过期后要重新点按钮）</option>
+        <option value="C">C · 全部断开（每 5 分钟要重连一次）</option>
+      </select>
+    </div>
+    <div class="note" id="expiryNote"></div>
+    <hr>
+    <div class="row">
+      <button class="danger half" id="btnStop" onclick="stopAll()">停用并断开所有连接</button>
+      <button class="half" id="btnRefresh" onclick="doRefresh()">刷新状态</button>
+    </div>
+  </div>
+
+<script language="javascript">
+/* HTA 的 IE 内核可能没有 JSON 对象（默认 IE7 文档模式），这里补一个最小实现 */
+if (typeof JSON === 'undefined') { var JSON = {}; }
+if (typeof JSON.parse !== 'function') {
+  JSON.parse = function (s) { return eval('(' + s + ')'); };
+}
+if (typeof JSON.stringify !== 'function') {
+  JSON.stringify = function (o) {
+    if (o === null) return 'null';
+    var t = typeof o;
+    if (t === 'number' || t === 'boolean') return String(o);
+    if (t === 'string') return '"' + o.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/[\r\n]/g, ' ') + '"';
+    if (t === 'object') {
+      if (o instanceof Array) {
+        var a = [];
+        for (var i = 0; i < o.length; i++) a.push(JSON.stringify(o[i]));
+        return '[' + a.join(',') + ']';
+      }
+      var parts = [];
+      for (var k in o) {
+        if (!o.hasOwnProperty(k)) continue;
+        if (typeof o[k] === 'undefined' || typeof o[k] === 'function') continue;
+        parts.push(JSON.stringify(k) + ':' + JSON.stringify(o[k]));
+      }
+      return '{' + parts.join(',') + '}';
+    }
+    return 'null';
+  };
+}
+var API = 'http://127.0.0.1:14930';
+var EXPECTED_API = 1;          // 本界面需要的连接器 API 版本
+var versionWarned = false;
+
+var AUTHOR = '你发鸡盲吗？';
+var DOUYIN = '22519731810';
+var QQ = '1097551433';
+
+function versionDialog(currentVersion, currentApi, needApi) {
+  alert('版本过低\n\n'
+    + '连接器程序：' + (currentVersion || '未知（过旧的版本）') + '\n'
+    + '程序 API：' + (typeof currentApi === 'undefined' ? '缺失' : ('v' + currentApi)) + '\n'
+    + '本界面需要：API v' + needApi + '\n\n'
+    + '程序与界面版本不匹配，请更新 DSH 连接器后重试。\n\n'
+    + '更新请联系作者：\n'
+    + AUTHOR + '\n'
+    + '抖音：' + DOUYIN + '\n'
+    + 'QQ：' + QQ);
+}
+
+function newerProgramDialog(currentVersion, currentApi) {
+  alert('界面版本过低\n\n'
+    + '连接器程序：' + (currentVersion || '未知') + '（API v' + currentApi + '）\n'
+    + '本界面只支持：API v' + EXPECTED_API + '\n\n'
+    + '程序比界面新，请更新界面（DSH连接器.hta）后重试。\n\n'
+    + '更新请联系作者：\n'
+    + AUTHOR + '\n'
+    + '抖音：' + DOUYIN + '\n'
+    + 'QQ：' + QQ);
+}
+
+/*
+ * 只在「功能真的失败」时才做版本诊断：
+ *   · 正常能用 → 完全不管版本号（更新不一定会破坏兼容）
+ *   · 连接失败 / 接口 404 / 返回异常，且版本对不上 → 判为版本不匹配并弹窗
+ * 返回 true = 已按版本问题弹窗（调用方不要再报普通错误）
+ */
+function diagnoseFailure(d, httpStatus) {
+  // 连接层面失败（程序没开），交给 ensureServer 处理，不当成版本问题
+  if (httpStatus === 0) return false;
+
+  var v = d ? d.apiVersion : undefined;
+  var missing = (typeof v === 'undefined' || v === null);
+
+  // 404 且没有版本字段 = 老程序根本没有这个接口
+  if (httpStatus === 404 && missing) {
+    if (!versionWarned) { versionWarned = true; versionDialog(d ? d.programVersion : '', undefined, EXPECTED_API); }
+    return true;
+  }
+  if (missing) {
+    if (!versionWarned) { versionWarned = true; versionDialog(d ? d.programVersion : '', undefined, EXPECTED_API); }
+    return true;
+  }
+  if (v < EXPECTED_API) {
+    if (!versionWarned) { versionWarned = true; versionDialog(d.programVersion, v, EXPECTED_API); }
+    return true;
+  }
+  if (v > EXPECTED_API) {
+    if (!versionWarned) { versionWarned = true; newerProgramDialog(d.programVersion, v); }
+    return true;
+  }
+  // 版本一致但仍失败 → 是别的原因，不弹版本窗
+  return false;
+}
+var timer = null;
+var expiresAt = 0;
+var starting = false;
+
+var NOTES = {
+  A: 'A：5 分钟内显示二维码，到期后界面隐藏，但<strong>链接本身一直可用</strong>（直到你点「停用」）。<br><span style="color:#b42318;font-weight:bold">⚠ 引擎会常挂公网，建议改用 B 策略</span>',
+  B: 'B：到期后界面隐藏，并<strong>拒绝新的连接</strong>；已经连着的手机不受影响。<strong>退出浏览器后再用旧链接进不来</strong>，需重新生成。',
+  C: 'C：到期后<strong>强制断开所有手机</strong>，必须重新生成二维码才能再连。最严格，适合临时演示或给别人看一次。'
+};
+
+function $(id) { return document.getElementById(id); }
+function setMsg(t, cls) { var m = $('msg'); m.className = 'msg ' + (cls || ''); m.innerHTML = t; }
+function updateExpiryNote() {
+  var v = $('selExpiry').value || 'B';
+  $('expiryNote').innerHTML = NOTES[v] || '';
+}
+
+function xhr(method, url, body, cb) {
+  try {
+    var x = new ActiveXObject("MSXML2.XMLHTTP");
+    x.open(method, url, true);
+    x.onreadystatechange = function () {
+      if (x.readyState === 4) {
+        var data = null;
+        try { data = JSON.parse(x.responseText); } catch (e) { data = { ok: false, error: 'bad json' }; }
+        cb(x.status, data);
+      }
+    };
+    if (body) x.setRequestHeader('Content-Type', 'application/json');
+    x.send(body || null);
+  } catch (e) {
+    cb(0, { ok: false, error: String(e.message) });
+  }
+}
+
+function htaDir() {
+  // HTA 自身所在目录 —— 不再写死 C:\Users\<你>\.dsh\connector
+  var u = unescape(location.href).replace(/^file:\/{1,3}/i, '').replace(/\//g, '\\');
+  var i = u.lastIndexOf('\\');
+  return i > 0 ? u.substring(0, i) : '';
+}
+
+function ensureServer() {
+  if (starting) return;
+  starting = true;
+  setMsg('正在启动本地服务…', '');
+  try {
+    var sh = new ActiveXObject("WScript.Shell");
+    sh.Run('cmd /c ""' + htaDir() + '\\start-server.cmd""', 0, false);
+    setTimeout(function () { starting = false; refresh(); }, 3000);
+  } catch (e) {
+    starting = false;
+    setMsg('无法启动本地服务：' + e.message, 'err');
+  }
+}
+
+function refresh(onDone) {
+  xhr('GET', API + '/api/status', null, function (st, d) {
+    if (st === 0) {
+      $('engineDot').className = 'dot bad';
+      $('engineText').innerHTML = '服务未启动';
+      ensureServer();
+      if (onDone) onDone(st, d);
+      return;
+    }
+    if (st !== 200 || !d.ok) {
+      if (diagnoseFailure(d, st)) {
+        $('engineDot').className = 'dot bad';
+        $('engineText').innerHTML = '版本不匹配';
+        setMsg('连接异常且版本不匹配，请按弹窗提示更新', 'err');
+        if (onDone) onDone(st, d);
+        return;
+      }
+      $('engineDot').className = 'dot bad';
+      $('engineText').innerHTML = '服务异常';
+      setMsg('服务返回错误：' + (d && d.error ? d.error : ('HTTP ' + st)), 'err');
+      if (onDone) onDone(st, d);
+      return;
+    }
+    versionWarned = false;   // 正常可用，重置告警标记
+    $('engineDot').className = 'dot ' + (d.state.engineUp ? 'ok' : 'bad');
+    $('engineText').innerHTML = d.state.engineUp ? '引擎在线' : '引擎离线';
+    var lb = $('btnLaunch');
+    if (lb) { lb.style.display = d.state.engineUp ? 'none' : 'inline'; }
+    $('selDisplay').value = d.settings.display;
+    $('inpMinutes').value = d.settings.windowMinutes;
+    $('selExpiry').value = d.settings.expiryMode || 'A';
+    $('selChannel').value = d.settings.channelMode || 'exclusive';
+    updateExpiryNote();
+    updateChannelNote();
+    renderChannels(d);
+    // 兜底：双通模式下强制显示表格（部分 IE 版本对内联样式恢复不彻底）
+    if (d.settings && d.settings.channelMode === 'dual' && d.settings.display !== 'text') {
+      var hasAny = (d.state.lan && d.state.lan.url) || (d.state.wan && d.state.wan.url);
+      if (hasAny) {
+        $('qrImg').style.display = 'none';
+        $('qrPlaceholder').style.display = 'none';
+        $('qrDual').style.display = '';
+      }
+    }
+    if (onDone) onDone(st, d);
+  });
+}
+
+// 手动刷新：按钮进入「刷新中」，等真实返回后才给结果（带时间戳与耗时）
+var refreshing = false;
+// 引擎离线时手动拉起 DeepSeek（最长等 90 秒，服务端负责轮询 14925）
+var launching = false;
+function launchApp() {
+  if (launching) return;
+  launching = true;
+  var b = $('btnLaunch');
+  var t0 = new Date().getTime();
+  if (b) { b.disabled = true; b.innerHTML = '启动中…'; }
+  setMsg('正在启动 DeepSeek（通常 3–8 秒）… 0s', '');
+  var tick = setInterval(function () {
+    var s = Math.round((new Date().getTime() - t0) / 1000);
+    setMsg('正在启动 DeepSeek（通常 3–8 秒）… ' + s + 's', '');
+  }, 500);
+  xhr('POST', API + '/api/launch-app', null, function (st, d) {
+    if (tick) clearInterval(tick);
+    launching = false;
+    if (b) { b.disabled = false; b.innerHTML = '启动 DeepSeek'; }
+    var cost = Math.round((new Date().getTime() - t0) / 1000) + 's';
+    if (d && d.ok) {
+      var secs = d.launchedMs ? (Math.round(d.launchedMs / 100) / 10 + 's') : cost;
+      var pidTxt = (d.pid && d.pid > 0) ? ('pid ' + d.pid + '，') : '';
+      setMsg(d.already ? 'DeepSeek 已在运行' : ('DeepSeek 已就绪（' + pidTxt + '用时 ' + secs + '），可以生成二维码了'), 'ok');
+      refresh();
+    } else {
+      setMsg('启动失败（' + cost + '）：' + ((d && d.error) || ('HTTP ' + st)), 'err');
+    }
+  });
+}
+
+function doRefresh() {
+  if (refreshing) return;
+  refreshing = true;
+  var b = $('btnRefresh');
+  var t0 = new Date().getTime();
+  if (b) { b.disabled = true; b.innerHTML = '刷新中…'; }
+  function done(ok, detail) {
+    refreshing = false;
+    if (b) { b.disabled = false; b.innerHTML = '刷新状态'; }
+    var n = new Date();
+    function p2(v) { return (v < 10 ? '0' : '') + v; }
+    var ts = p2(n.getHours()) + ':' + p2(n.getMinutes()) + ':' + p2(n.getSeconds());
+    var cost = (new Date().getTime() - t0) + 'ms';
+    if (ok) setMsg('已刷新 ' + ts + ' · 用时 ' + cost, 'ok');
+    else setMsg('刷新失败 ' + ts + '：' + detail + ' · 用时 ' + cost, 'err');
+  }
+  refresh(function (st, d) {
+    if (st === 200 && d && d.ok) done(true);
+    else if (st === 0) done(false, '程序未运行');
+    else done(false, (d && d.error) ? d.error : ('HTTP ' + st));
+  });
+}
+
+function showLink(url, tag, displayOverride) {
+  var display = displayOverride || $('selDisplay').value || 'both';
+  $('modeTag').innerHTML = tag ? '· ' + tag : '';
+  $('qrDual').style.display = 'none';
+  $('linkBox').value = url;
+  if (display === 'qr' || display === 'both') {
+    $('qrImg').src = API + '/qr.png' + (tag === '外网' ? '?mode=wan' : '?mode=lan') + '&t=' + (new Date().getTime());
+    $('qrImg').style.display = 'inline';
+    $('qrPlaceholder').style.display = 'none';
+  } else {
+    $('qrImg').style.display = 'none';
+    $('qrPlaceholder').style.display = 'block';
+    $('qrPlaceholder').innerHTML = '（当前设置：仅文本链接）';
+  }
+  $('linkBox').style.display = (display === 'text' || display === 'both') ? 'block' : 'none';
+}
+
+// 按当前通道模式渲染：互斥=一个二维码，双通=两个并排
+function renderChannels(d) {
+  var settings = (d && d.settings) || {};
+  var state = (d && d.state) || {};
+  var display = settings.display || 'both';
+  var lu = state.lan && state.lan.url;
+  var wu = state.wan && state.wan.url;
+
+  if (settings.channelMode === 'dual') {
+    $('qrImg').style.display = 'none';
+    $('linkBox').style.display = 'none';
+    $('modeTag').innerHTML = '· 双通';
+    if (display === 'text') {
+      $('qrDual').style.display = 'none';
+      $('qrPlaceholder').style.display = 'block';
+      $('qrPlaceholder').innerHTML = '（当前设置：仅文本链接）';
+    } else {
+      $('qrPlaceholder').style.display = 'none';
+      $('qrDual').style.display = '';   // IE 内核不认 display:table
+      if (lu) {
+        $('qrLan').src = API + '/qr.png?mode=lan&t=' + (new Date().getTime());
+        $('urlLan').innerHTML = lu;
+      } else { $('qrLan').src = ''; $('urlLan').innerHTML = '未开启'; }
+      if (wu) {
+        $('qrWan').src = API + '/qr.png?mode=wan&t=' + (new Date().getTime());
+        $('urlWan').innerHTML = wu;
+      } else { $('qrWan').src = ''; $('urlWan').innerHTML = '未开启'; }
+    }
+    if (display === 'text' || display === 'both') {
+      $('linkBox').value = (lu ? ('内网: ' + lu + '\n') : '') + (wu ? ('外网: ' + wu) : '');
+      $('linkBox').style.display = 'block';
+    }
+  } else {
+    $('qrDual').style.display = 'none';
+    var u = '', tag = '';
+    if (state.lastAction === 'wan' && wu) { u = wu; tag = '外网'; }
+    else if (lu) { u = lu; tag = '内网'; }
+    else if (wu) { u = wu; tag = '外网'; }
+    if (u) showLink(u, tag, display);
+  }
+}
+
+function startTimer(exp) {
+  expiresAt = exp;
+  if (timer) clearInterval(timer);
+  $('countdown').style.display = 'block';
+  tick();
+  timer = setInterval(tick, 500);
+}
+function tick() {
+  var left = Math.max(0, Math.floor((expiresAt - new Date().getTime()) / 1000));
+  if (left <= 0) {
+    clearInterval(timer); timer = null;
+    $('countdown').innerHTML = '二维码已过期，请重新点击上方按钮生成';
+    $('qrImg').style.display = 'none';
+    $('qrDual').style.display = 'none';
+    $('linkBox').style.display = 'none';
+    $('qrPlaceholder').style.display = 'block';
+    $('qrPlaceholder').innerHTML = '已过期（再次点击按钮可重新生成）';
+    return;
+  }
+  var m = Math.floor(left / 60), s = left % 60;
+  $('countdown').innerHTML = '剩余 ' + m + ':' + (s < 10 ? '0' + s : s) + '（过期后需重新生成）';
+}
+
+function start(mode) {
+  $('btnLan').disabled = true; $('btnWan').disabled = true;
+  setMsg(mode === 'lan' ? '正在启动内网通道…' : '正在启动外网隧道（约 10–40 秒）…', '');
+  $('countdown').style.display = 'none';
+  if (timer) { clearInterval(timer); timer = null; }
+
+  xhr('POST', API + '/api/start?mode=' + mode, null, function (st, d) {
+    $('btnLan').disabled = false; $('btnWan').disabled = false;
+    if (st !== 200 || !d.ok) {
+      if (diagnoseFailure(d, st)) { setMsg('连接失败且版本不匹配，请按弹窗提示更新', 'err'); return; }
+      setMsg('失败：' + (d && d.error ? d.error : ('HTTP ' + st)), 'err');
+      return;
+    }
+    var extra = '';
+    if (mode === 'wan' && d.reachable === false) extra = '（域名解析可能还需等待）';
+    setMsg((mode === 'lan' ? '内网' : '外网') + '已就绪' + extra, 'ok');
+    refresh();   // 不直接 showLink：交给 renderChannels 按互斥/双通决定布局
+    startTimer(d.expiresAt);
+  });
+}
+
+function stopAll() {
+  // 先读真实状态：列出到底有哪些通道在跑，再让用户确认
+  xhr('GET', API + '/api/status', null, function (st, d) {
+    if (st !== 200 || !d || !d.ok) { setMsg('无法获取通道状态：连接器程序未运行', 'err'); return; }
+    var names = [], details = [];
+    var lanOn = d.state && d.state.lan && d.state.lan.on;
+    var wanOn = d.state && d.state.wan && d.state.wan.on;
+    if (lanOn) { names.push('内网'); details.push('· 内网  ' + (d.state.lan.url || '192.168.1.2:14925')); }
+    if (wanOn) { names.push('外网'); details.push('· 外网  https://' + (d.state.wan.domain || '?')); }
+
+    if (names.length === 0) {
+      setMsg('当前没有正在运行的通道，无需停用', 'ok');
+      return;
+    }
+    var head = (names.length === 2) ? '内网和外网都在运行' : (names[0] + '正在运行');
+    var msg = head + '\n\n' + details.join('\n') + '\n\n停止后，' + names.join('和') + '通道上已连接的设备会立刻断开。\n确认停止吗？';
+    if (!confirm(msg)) return;
+
+    xhr('POST', API + '/api/stop', null, function (st2, d2) {
+      if (d2 && d2.ok) {
+        setMsg('已停用 ' + names.join('和') + '，所有连接已断开', 'ok');
+        $('qrImg').style.display = 'none';
+        $('qrDual').style.display = 'none';
+        $('linkBox').style.display = 'none';
+        $('countdown').style.display = 'none';
+        $('qrPlaceholder').style.display = 'block';
+        $('qrPlaceholder').innerHTML = '已停用（再次点击按钮可重新开启）';
+        $('modeTag').innerHTML = '';
+        if (timer) { clearInterval(timer); timer = null; }
+      } else {
+        setMsg('停用失败：' + (d2 && d2.error ? d2.error : 'unknown'), 'err');
+      }
+    });
+  });
+}
+
+function onExpiryChange() {
+  updateExpiryNote();
+  saveSettings();
+}
+
+function updateChannelNote() {
+  var v = $('selChannel').value || 'exclusive';
+  $('channelNote').innerHTML = (v === 'dual')
+    ? '双通：内网和外网同时开启，各自一个二维码并排显示。'
+    : '互斥：点内网就关外网，点外网就关内网，始终只有一个二维码。';
+}
+function saveSettings() {
+  updateChannelNote();
+  var body = JSON.stringify({
+    display: $('selDisplay').value,
+    windowMinutes: Number($('inpMinutes').value) || 5,
+    expiryMode: $('selExpiry').value,
+    channelMode: $('selChannel').value
+  });
+  xhr('POST', API + '/api/settings', body, function (st, d) {
+    if (d && d.ok) setMsg('设置已保存', 'ok');
+  });
+}
+
+window.onload = function () {
+  // 窗口高度按屏幕可用高度自适应：高屏用足，矮屏不溢出
+  var availH = 900;
+  try { availH = (screen.availHeight || 900) - 60; } catch (e) {}
+  if (availH > 920) availH = 920;
+  if (availH < 640) availH = 640;
+  resizeTo(512, availH);
+  updateExpiryNote();
+  refresh();
+};
+</script>
+<div id="footer">整合作者：<b>你发鸡盲吗？</b>　抖音：22519731810　QQ：1097551433</div>
+</body>
+</html>
