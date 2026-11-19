@@ -149,6 +149,23 @@ prompt-inject.md         破甲注入文本
 
 ---
 
+## 维护与发布
+
+两条命令覆盖日常：
+
+`powershell
+# 1) 改完代码：把线上文件同步进仓库（自动拷贝 + 脱敏 token/域名/用户目录 + 提交推送）
+powershell -ExecutionPolicy Bypass -File tools\sync-repo.ps1 -Message "fix: 改了什么"
+
+# 2) 发版：提交 + 推送 + 打 Release + 上传便携包 + 复制下载链接
+发布工具\一键发布.bat
+`
+
+	ools/sync-repo.ps1 从 `%USERPROFILE%\.dsh\connector`、`.dsh\connector-plugin` 拉真正在跑的文件，
+覆盖到 `连接器便携包/`；文档从工作目录同步到仓库根，并强制把**访问 token、隧道域名、本机用户目录**替换成占位符——
+这几样东西一旦进公开仓库，等于把登录凭据和机器信息发出去。
+
+---
 ## 作者
 
 ```

@@ -4,7 +4,7 @@
 param(
   [int]$Port = 5288,
   [string]$BindIp = "",
-  [string]$DshHome = "C:\Users\10975\.dsh",
+  [string]$DshHome = (Join-Path $env:USERPROFILE '.dsh'),
   [string[]]$TrustedHost = @()
 )
 
